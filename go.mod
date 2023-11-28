@@ -1,4 +1,4 @@
-module db
+module github.com/squlpt-go/db
 
 go 1.21.3
 
