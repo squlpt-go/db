@@ -113,10 +113,12 @@ func Flatten[T any](entities []T) []map[string]any {
 	return flattened
 }
 
-func flattenForSave[T any](entities []T) []map[string]any {
+func flattenForSave[T IEntity](db *sql.DB, entities []T) []map[string]any {
 	flattened := make([]map[string]any, 0)
 	for i := 0; i < len(entities); i++ {
-		flattened = append(flattened, entityToMap(&entities[i], true, false))
+		m := entityToMap(&entities[i], true, false)
+		DoFilterChildren[T](db, m)
+		flattened = append(flattened, m)
 	}
 	return flattened
 }

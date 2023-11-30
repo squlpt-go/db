@@ -19,15 +19,23 @@ func Validate(db *sql.DB, rules ...RuleDefT) {
 	validate(db, validationRules, rules...)
 }
 
-func Rule[T IEntity](callback func(*T) error) ruleDef[T] {
-	return ruleDef[T]{
+func Rule[T IEntity](callback func(*T) error) RuleDef[T] {
+	return RuleDef[T]{
 		rule: func(entity any) error {
 			return callback(entity.(*T))
 		},
 	}
 }
 
-func Required[T IEntity](fields ...string) ruleDef[T] {
+func Filter[T IEntity](callback func(map[string]any)) RuleDef[T] {
+	return RuleDef[T]{
+		filter: func(fields map[string]any) {
+			callback(fields)
+		},
+	}
+}
+
+func Required[T IEntity](fields ...string) RuleDef[T] {
 	return Rule[T](func(entity *T) error {
 		efs := entityToMap(entity, false, false)
 		for key, field := range efs {
@@ -41,7 +49,7 @@ func Required[T IEntity](fields ...string) ruleDef[T] {
 	})
 }
 
-func Matches[T IEntity](pattern string, fields ...string) ruleDef[T] {
+func Matches[T IEntity](pattern string, fields ...string) RuleDef[T] {
 	re := regexp.MustCompile(pattern)
 
 	return Rule[T](func(entity *T) error {
@@ -83,8 +91,21 @@ func DoValidateChildren[T IEntity](db *sql.DB, entity *T) error {
 	return doValidate(db, entity, queryTypeChildren)
 }
 
+func DoFilterInsert[T IEntity](db *sql.DB, fields map[string]any) {
+	doFilter[T](db, fields, Insert)
+}
+
+func DoFilterUpdate[T IEntity](db *sql.DB, fields map[string]any) {
+	doFilter[T](db, fields, Update)
+}
+
+func DoFilterChildren[T IEntity](db *sql.DB, fields map[string]any) {
+	doFilter[T](db, fields, queryTypeChildren)
+}
+
 type RuleDefT interface {
 	Validate(any) error
+	Filter(map[string]any)
 	Error() error
 	WithErr(error) RuleDefT
 	typeId() typeId
@@ -94,53 +115,64 @@ type RuleDefT interface {
 	ForChildren() RuleDefT
 }
 
-type ruleDef[T IEntity] struct {
+type RuleDef[T IEntity] struct {
 	rule      func(any) error
+	filter    func(map[string]any)
 	err       error
 	queryType QueryType
 }
 
-func (rd ruleDef[T]) Validate(entity any) error {
-	return rd.rule(entity)
+func (rd RuleDef[T]) Validate(entity any) error {
+	if rd.rule != nil {
+		return rd.rule(entity)
+	}
+
+	return nil
 }
 
-func (rd ruleDef[T]) Error() error {
+func (rd RuleDef[T]) Filter(flat map[string]any) {
+	if rd.filter != nil {
+		rd.filter(flat)
+	}
+}
+
+func (rd RuleDef[T]) Error() error {
 	return rd.err
 }
 
-func (rd ruleDef[T]) WithErr(err error) RuleDefT {
-	return ruleDef[T]{
+func (rd RuleDef[T]) WithErr(err error) RuleDefT {
+	return RuleDef[T]{
 		rule: rd.rule,
 		err:  err,
 	}
 }
 
-func (rd ruleDef[T]) typeId() typeId {
+func (rd RuleDef[T]) typeId() typeId {
 	return tId[T]()
 }
 
-func (rd ruleDef[T]) QueryType() QueryType {
+func (rd RuleDef[T]) QueryType() QueryType {
 	return rd.queryType
 }
 
-func (rd ruleDef[T]) ForInsert() RuleDefT {
-	return ruleDef[T]{
+func (rd RuleDef[T]) ForInsert() RuleDefT {
+	return RuleDef[T]{
 		rule:      rd.rule,
 		err:       rd.err,
 		queryType: Insert,
 	}
 }
 
-func (rd ruleDef[T]) ForUpdate() RuleDefT {
-	return ruleDef[T]{
+func (rd RuleDef[T]) ForUpdate() RuleDefT {
+	return RuleDef[T]{
 		rule:      rd.rule,
 		err:       rd.err,
 		queryType: Update,
 	}
 }
 
-func (rd ruleDef[T]) ForChildren() RuleDefT {
-	return ruleDef[T]{
+func (rd RuleDef[T]) ForChildren() RuleDefT {
+	return RuleDef[T]{
 		rule:      rd.rule,
 		err:       rd.err,
 		queryType: queryTypeChildren,
@@ -182,6 +214,21 @@ func doValidate[T IEntity](db *sql.DB, entity *T, queryType QueryType) error {
 						return err
 					}
 				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func doFilter[T IEntity](db *sql.DB, flat map[string]any, queryType QueryType) error {
+	tid := tId[T]()
+
+	if rules, ok := validationRules[db][tid]; ok {
+		for i := 0; i < len(rules); i++ {
+			rule := rules[i]
+			if rule.QueryType() == queryType || rule.QueryType() == queryTypeAll {
+				rule.Filter(flat)
 			}
 		}
 	}

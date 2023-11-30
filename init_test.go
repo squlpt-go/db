@@ -25,6 +25,7 @@ type Parent struct {
 	Status    status               `field:"parent_status"`
 	Timestamp time.Time            `field:"parent_timestamp"`
 	Data      Json[map[string]any] `field:"parent_data"`
+	DontSave  string               `field:"no_field"`
 }
 
 type Child struct {

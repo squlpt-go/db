@@ -21,6 +21,11 @@ func init() {
 		).ForInsert(),
 		Required[Parent]("parent_name").WithErr(nameErr),
 		Matches[Parent]("^[A-Za-z ]+$", "parent_name").WithErr(nameMatchErr),
+		Filter[Parent](
+			func(fields map[string]any) {
+				delete(fields, "no_field")
+			},
+		),
 	)
 }
 
@@ -63,5 +68,35 @@ func TestValidateUpdate(t *testing.T) {
 	err = DoValidateUpdate(db, &Parent{Name: NewNullable("123")})
 	if err == nil {
 		t.Error("Should not validate")
+	}
+}
+
+func TestFilterInsert(t *testing.T) {
+	db := DB()
+
+	v := map[string]any{
+		"no_field": 1,
+	}
+
+	DoFilterInsert[Parent](db, v)
+	_, has := v["no_field"]
+
+	if has {
+		t.Error("Should not have 'no_field'")
+	}
+}
+
+func TestFilterUpdate(t *testing.T) {
+	db := DB()
+
+	v := map[string]any{
+		"no_field": 1,
+	}
+
+	DoFilterInsert[Parent](db, v)
+	_, has := v["no_field"]
+
+	if has {
+		t.Error("Should not have 'no_field'")
 	}
 }

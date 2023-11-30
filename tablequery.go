@@ -97,7 +97,9 @@ func InsertRow[T IEntity](db *sql.DB, entity T) (*Result, error) {
 	pk := mustGetPrimaryKeyField(entity)
 	table := getPrimaryKeyTable(pk)
 	fields := entityToMap(&entity, false, false)
+
 	fields = filterTableFields(db, table, fields)
+	DoFilterInsert[T](db, fields)
 
 	if len(fields) == 0 {
 		panic("no fields to insert")
@@ -123,7 +125,9 @@ func UpdateRow[T IEntity](db *sql.DB, entity T) (*Result, error) {
 	pk := mustGetPrimaryKeyField(entity)
 	table := getPrimaryKeyTable(pk)
 	fields := entityToMap(&entity, true, false)
+
 	fields = filterTableFields(db, table, fields)
+	DoFilterUpdate[T](db, fields)
 
 	if len(fields) == 0 {
 		panic("no fields to update")
@@ -241,9 +245,9 @@ func SetChildren[Parent IEntity, Children IEntity, S EntitySet[Children]](db *sq
 	case []map[string]any:
 		err = relation.setChildren(db, asString(parentId), cpk, es, subtractive)
 	case []Children:
-		err = relation.setChildren(db, asString(parentId), cpk, flattenForSave[Children](es), subtractive)
+		err = relation.setChildren(db, asString(parentId), cpk, flattenForSave[Children](db, es), subtractive)
 	case []IEntity:
-		err = relation.setChildren(db, asString(parentId), cpk, flattenForSave[IEntity](es), subtractive)
+		err = relation.setChildren(db, asString(parentId), cpk, flattenForSave[IEntity](db, es), subtractive)
 	default:
 		panic("invalid entity set type")
 	}
