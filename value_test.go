@@ -107,3 +107,10 @@ func TestFloat_ValidateSQL(t *testing.T) {
 		t.Errorf("Float.ValidateSQL() returned an error: %v", err)
 	}
 }
+
+type id int64
+
+func TestInt64(t *testing.T) {
+	var v any = id(1)
+	_ = LValue(v)
+}

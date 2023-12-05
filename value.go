@@ -203,17 +203,18 @@ func RValue(value any) Value {
 	case Stringer:
 		return String(val.String())
 	default:
-		v := reflect.TypeOf(value)
-		if v.Kind() == reflect.String {
+		switch reflect.TypeOf(value).Kind() {
+		case reflect.String:
 			s := fmt.Sprintf("%s", value)
 			return String(s)
-		}
-		if v.Kind() == reflect.Int {
+
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			s := fmt.Sprintf("%d", value)
 			i, _ := strconv.Atoi(s)
 			return Int(i)
-		}
-		if v.Kind() == reflect.Float64 {
+
+		case reflect.Float32, reflect.Float64:
 			s := fmt.Sprintf("%f", value)
 			f, _ := strconv.ParseFloat(s, 64)
 			return Float(f)
