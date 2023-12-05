@@ -117,17 +117,6 @@ func TestToMap(t *testing.T) {
 	}
 }
 
-func GetField[T any](fields map[string]any, key string) (T, bool) {
-	if value, ok := fields[key]; ok {
-		if v, ok := value.(T); ok {
-			return v, true
-		}
-	}
-
-	var t T
-	return t, false
-}
-
 func TestHydrate(t *testing.T) {
 	s, err := FromMap[Parent](map[string]any{
 		"parent_id":    int64(123),

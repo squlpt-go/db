@@ -90,17 +90,17 @@ func (r *Rows[T]) Current() T {
 	return s
 }
 
-func (r *Rows[T]) Row() (T, error) {
+func (r *Rows[T]) Row() (T, bool) {
 	hasNext := r.Rows.Next()
 	defer r.Close()
 
 	if !hasNext {
 		var e T
-		return e, ErrEntityNotFound
+		return e, false
 	}
 
 	e := r.Current()
-	return e, nil
+	return e, true
 }
 
 func (r *Rows[T]) Slice() []T {

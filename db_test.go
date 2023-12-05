@@ -56,9 +56,9 @@ func TestResultRow(t *testing.T) {
 	}
 
 	result := As[Child](rows)
-	row, err := result.Row()
-	if err != nil {
-		t.Fatal(err)
+	row, has := result.Row()
+	if !has {
+		t.Fatal("row not found")
 	}
 
 	if row.ID == 0 {

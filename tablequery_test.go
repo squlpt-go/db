@@ -61,9 +61,9 @@ func TestInsertDeleteRow(t *testing.T) {
 }
 
 func TestUpdateRow(t *testing.T) {
-	existing, err := GetRows[Child](DB()).Row()
-	if err != nil {
-		t.Fatal(err)
+	existing, has := GetRows[Child](DB()).Row()
+	if !has {
+		t.Fatal("could not get existing child")
 	}
 
 	h := Child{
@@ -82,9 +82,9 @@ func TestUpdateRow(t *testing.T) {
 		t.Errorf("One row should have been updated")
 	}
 
-	_, err = GetRowById[Child](DB(), existing.ID)
+	_, has = GetRowById[Child](DB(), existing.ID)
 
-	if err != nil {
+	if !has {
 		t.Error("Child row doesn't exist")
 	}
 }
@@ -150,18 +150,18 @@ func TestGetRows(t *testing.T) {
 
 func TestGetChildrenOneToMany(t *testing.T) {
 	db := DB()
-	existing, err := GetRows[Child](db).Row()
-	if err != nil {
-		t.Fatal(err)
+	existing, has := GetRows[Child](db).Row()
+	if !has {
+		t.Fatal("could not get child")
 	}
 	_ = GetChildren[Parent, Child](db, existing.ID)
 }
 
 func TestGetChildrenManyToMany(t *testing.T) {
 	db := DB()
-	existing, err := GetRows[Child](db).Row()
-	if err != nil {
-		t.Fatal(err)
+	existing, has := GetRows[Child](db).Row()
+	if !has {
+		t.Fatal("could not get child")
 	}
 	_ = GetChildren[Parent, Friend](db, existing.ID)
 }

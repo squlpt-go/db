@@ -29,11 +29,11 @@ type Parent struct {
 }
 
 func (p *Parent) Hydrate(fields map[string]any) error {
-	if name, ok := GetField[string](fields, "hydrate_name"); ok {
+	if name, ok := GetMapField[string](fields, "hydrate_name"); ok {
 		return p.Name.Scan(name)
 	}
 
-	if timestamp, ok := GetField[time.Time](fields, "parent_timestamp"); ok {
+	if timestamp, ok := GetMapField[time.Time](fields, "parent_timestamp"); ok {
 		p.Timestamp = timestamp
 	}
 

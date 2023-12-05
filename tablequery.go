@@ -74,7 +74,7 @@ func GetCount[T IEntity](db *sql.DB, qs ...*QueryBuilder) int64 {
 	return count
 }
 
-func GetRowById[T IEntity, I IDType](db *sql.DB, id I, qs ...*QueryBuilder) (T, error) {
+func GetRowById[T IEntity, I IDType](db *sql.DB, id I, qs ...*QueryBuilder) (T, bool) {
 	s := new(T)
 	pk := mustGetPrimaryKeyField(s)
 	table := getPrimaryKeyTable(pk)
@@ -87,11 +87,6 @@ func GetRowById[T IEntity, I IDType](db *sql.DB, id I, qs ...*QueryBuilder) (T, 
 func InsertRow[T IEntity](db *sql.DB, entity T) (*Result, error) {
 	if reflect.ValueOf(entity).IsZero() {
 		panic("Cannot insert zero entity " + reflect.TypeOf(entity).String())
-	}
-
-	err := doValidateInsert(&entity)
-	if err != nil {
-		return nil, err
 	}
 
 	pk := mustGetPrimaryKeyField(entity)
@@ -117,11 +112,6 @@ func InsertRow[T IEntity](db *sql.DB, entity T) (*Result, error) {
 func UpdateRow[T IEntity](db *sql.DB, entity T) (*Result, error) {
 	if reflect.ValueOf(entity).IsZero() {
 		panic("Cannot insert zero entity " + reflect.TypeOf(entity).String())
-	}
-
-	err := doValidateUpdate(&entity)
-	if err != nil {
-		return nil, err
 	}
 
 	pk := mustGetPrimaryKeyField(entity)
@@ -226,13 +216,6 @@ func AssignChildren[Parent IEntity, Children IEntity, I IDType](db *sql.DB, pare
 func SetChildren[Parent IEntity, Children IEntity, S EntitySet[Children]](db *sql.DB, parentId any, childEntities S, subtractive bool) error {
 	var p Parent
 	var c Children
-
-	for i := 0; i < len(childEntities); i++ {
-		err := doValidateChildren(&childEntities[i])
-		if err != nil {
-			return err
-		}
-	}
 
 	pt := mustGetTable(&p)
 	ct := mustGetTable(&c)
