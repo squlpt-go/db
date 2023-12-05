@@ -20,17 +20,29 @@ const (
 
 type Parent struct {
 	*Entity
-	ID        int64                `field:"parent_id" primary:"parents"`
-	Name      Nullable[string]     `field:"parent_name"`
-	Status    status               `field:"parent_status"`
-	Timestamp time.Time            `field:"parent_timestamp"`
+	ID        int64            `field:"parent_id" primary:"parents"`
+	Name      Nullable[string] `field:"parent_name"`
+	Status    status           `field:"parent_status"`
+	Timestamp time.Time
 	Data      Json[map[string]any] `field:"parent_data"`
 	DontSave  string               `field:"no_field"`
 }
 
+func (p *Parent) Hydrate(fields map[string]any) error {
+	if name, ok := GetField[string](fields, "hydrate_name"); ok {
+		return p.Name.Scan(name)
+	}
+
+	if timestamp, ok := GetField[time.Time](fields, "parent_timestamp"); ok {
+		p.Timestamp = timestamp
+	}
+
+	return nil
+}
+
 type Child struct {
 	*Entity
-	Parent `field:"parent_id" foreign:"parents"`
+	Parent Parent `field:"parent_id" foreign:"parents"`
 	ID     int64  `field:"child_id" primary:"children"`
 	Name   string `field:"child_name"`
 }

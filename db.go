@@ -132,7 +132,7 @@ func Column[U any, T IEntity](r *Rows[T], name string) []U {
 		c := r.Current()
 		f := c.entityFields()
 
-		if v, ok := (*f)[name]; ok {
+		if v, ok := f[name]; ok {
 			var u U
 			err := convertAssign(&u, *v.Value)
 			if err != nil {

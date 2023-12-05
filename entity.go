@@ -50,6 +50,17 @@ func FromRows[T any](rows *sql.Rows) (T, error) {
 		return *e, fmt.Errorf("failed to execute FromRows: %w", err)
 	}
 
+	if h, ok := any(e).(Hydratable); ok {
+		m := make(map[string]any)
+		for i, columnType := range columnTypes {
+			m[columnType.Name()] = reflect.ValueOf(scan[i]).Elem().Interface()
+		}
+		err := h.Hydrate(m)
+		if err != nil {
+			return *e, err
+		}
+	}
+
 	return *e, nil
 }
 
@@ -98,6 +109,13 @@ func FromMap[T any, M ~map[string]any](m M) (T, error) {
 		}
 	}
 
+	if h, ok := any(e).(Hydratable); ok {
+		err := h.Hydrate(m)
+		if err != nil {
+			return *e, err
+		}
+	}
+
 	return *e, nil
 }
 
@@ -116,9 +134,14 @@ func Flatten[T any](entities []T) []map[string]any {
 func flattenForSave[T IEntity](db *sql.DB, entities []T) []map[string]any {
 	flattened := make([]map[string]any, 0)
 	for i := 0; i < len(entities); i++ {
-		m := entityToMap(&entities[i], true, false)
-		DoFilterChildren[T](db, m)
-		flattened = append(flattened, m)
+		pk := mustGetPrimaryKeyField(entities[i])
+		table := getPrimaryKeyTable(pk)
+		fields, err := doFilterChildren[T](&entities[i])
+		if err != nil {
+			return nil
+		}
+		fields = filterTableFields(db, table, fields)
+		flattened = append(flattened, fields)
 	}
 	return flattened
 }
@@ -136,16 +159,12 @@ func Inflate[T any, M ~map[string]any](mapSlice []M) ([]T, error) {
 }
 
 type Hydratable interface {
-	Hydrate() error
-}
-
-type Dehydratable interface {
-	Dehydrate() error
+	Hydrate(map[string]any) error
 }
 
 func NewEntity() *Entity {
 	return &Entity{
-		Fields: make(map[string]field),
+		fields: make(map[string]field),
 	}
 }
 
@@ -155,16 +174,16 @@ type field struct {
 }
 
 type IEntity interface {
-	entityFields() *map[string]field
+	entityFields() map[string]field
 }
 
 type Entity struct {
-	Fields map[string]field
+	fields map[string]field
 }
 
-func (e *Entity) entityFields() *map[string]field {
-	if e != nil && e.Fields != nil {
-		return &e.Fields
+func (e *Entity) entityFields() map[string]field {
+	if e != nil && e.fields != nil {
+		return e.fields
 	}
 
 	return nil
@@ -181,12 +200,12 @@ func entityFromRows(rows *sql.Rows) (*Entity, error) {
 	}
 
 	for _, column := range columnTypes {
-		e.Fields[column.Name()] = field{
+		e.fields[column.Name()] = field{
 			Type:  column,
 			Value: new(any),
 		}
 
-		scan = append(scan, e.Fields[column.Name()].Value)
+		scan = append(scan, e.fields[column.Name()].Value)
 	}
 
 	err = rows.Scan(scan...)
@@ -202,11 +221,11 @@ func entityFromMap(m map[string]any) (*Entity, error) {
 	e := NewEntity()
 
 	for k, v := range m {
-		e.Fields[k] = field{
+		e.fields[k] = field{
 			Value: new(any),
 		}
 
-		err := convertAssign(e.Fields[k].Value, v)
+		err := convertAssign(e.fields[k].Value, v)
 
 		if err != nil {
 			return nil, err
@@ -230,7 +249,7 @@ func entityToMap[T any](entity *T, onlyUpdated bool, unserialize bool) map[strin
 		ef := entity.entityFields()
 
 		if ef != nil {
-			for key, field := range *ef {
+			for key, field := range ef {
 				if _, hasValue := values[key]; !hasValue {
 					values[key] = field.Value
 				}

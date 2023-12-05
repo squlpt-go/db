@@ -89,17 +89,19 @@ func InsertRow[T IEntity](db *sql.DB, entity T) (*Result, error) {
 		panic("Cannot insert zero entity " + reflect.TypeOf(entity).String())
 	}
 
-	err := DoValidateInsert(db, &entity)
+	err := doValidateInsert(&entity)
 	if err != nil {
 		return nil, err
 	}
 
 	pk := mustGetPrimaryKeyField(entity)
 	table := getPrimaryKeyTable(pk)
-	fields := entityToMap(&entity, false, false)
 
+	fields, err := doFilterInsert[T](&entity)
+	if err != nil {
+		return nil, err
+	}
 	fields = filterTableFields(db, table, fields)
-	DoFilterInsert[T](db, fields)
 
 	if len(fields) == 0 {
 		panic("no fields to insert")
@@ -117,17 +119,19 @@ func UpdateRow[T IEntity](db *sql.DB, entity T) (*Result, error) {
 		panic("Cannot insert zero entity " + reflect.TypeOf(entity).String())
 	}
 
-	err := DoValidateUpdate(db, &entity)
+	err := doValidateUpdate(&entity)
 	if err != nil {
 		return nil, err
 	}
 
 	pk := mustGetPrimaryKeyField(entity)
 	table := getPrimaryKeyTable(pk)
-	fields := entityToMap(&entity, true, false)
 
+	fields, err := doFilterUpdate[T](&entity)
+	if err != nil {
+		return nil, err
+	}
 	fields = filterTableFields(db, table, fields)
-	DoFilterUpdate[T](db, fields)
 
 	if len(fields) == 0 {
 		panic("no fields to update")
@@ -224,7 +228,7 @@ func SetChildren[Parent IEntity, Children IEntity, S EntitySet[Children]](db *sq
 	var c Children
 
 	for i := 0; i < len(childEntities); i++ {
-		err := DoValidateChildren(db, &childEntities[i])
+		err := doValidateChildren(&childEntities[i])
 		if err != nil {
 			return err
 		}

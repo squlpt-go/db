@@ -20,7 +20,7 @@ func TestEntityFromRow(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	name, _ := e.Fields["parent_name"]
+	name, _ := e.fields["parent_name"]
 
 	fmt.Println(string((*name.Value).([]byte)))
 }
@@ -41,6 +41,10 @@ func TestStructFromRow(t *testing.T) {
 
 		if e.ID == 0 {
 			t.Errorf("Invalid struct from row: %#v", e)
+		}
+
+		if reflect.ValueOf(e.Timestamp).IsZero() {
+			t.Errorf("Invalid timestamp from row: %#v", e.Timestamp)
 		}
 
 		t.Logf("%+v\n", e)
@@ -110,6 +114,41 @@ func TestToMap(t *testing.T) {
 
 	if !reflect.DeepEqual(m, e) {
 		t.Errorf("not equal %+v, %+v", m, e)
+	}
+}
+
+func GetField[T any](fields map[string]any, key string) (T, bool) {
+	if value, ok := fields[key]; ok {
+		if v, ok := value.(T); ok {
+			return v, true
+		}
+	}
+
+	var t T
+	return t, false
+}
+
+func TestHydrate(t *testing.T) {
+	s, err := FromMap[Parent](map[string]any{
+		"parent_id":    int64(123),
+		"hydrate_name": "hydrated",
+		"parent_data":  map[string]any{"key": "value"},
+	})
+
+	if err != nil {
+		t.Fatal(s, err)
+	}
+
+	if s.ID != int64(123) {
+		t.Fatal("Invalid Parent.ID")
+	}
+
+	if !s.Name.Valid || s.Name.Wrapped != "hydrated" {
+		t.Fatal("Parent.Name should be 'hydrated'", s.Name.Wrapped)
+	}
+
+	if !reflect.DeepEqual(s.Data.Encoded, map[string]any{"key": "value"}) {
+		t.Fatal("Parent.Data don't match")
 	}
 }
 
