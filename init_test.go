@@ -28,15 +28,22 @@ type Parent struct {
 	DontSave  string               `field:"no_field"`
 }
 
-func (p *Parent) Hydrate(fields map[string]any) error {
+func (p Parent) Hydrate(fields map[string]any) (IEntity, error) {
+	var err error
+
 	if name, ok := MapField[string](fields, "hydrate_name"); ok {
-		return p.Name.Scan(name)
+		err = p.Name.Scan(name)
 	}
 
 	if timestamp, ok := MapField[time.Time](fields, "parent_timestamp"); ok {
 		p.Timestamp = timestamp
 	}
 
+	return p, err
+}
+
+func (p Parent) Filter(fields map[string]any) error {
+	delete(fields, "no_field")
 	return nil
 }
 

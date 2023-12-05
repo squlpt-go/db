@@ -4,11 +4,6 @@ import (
 	"testing"
 )
 
-func (p *Parent) Filter(fields map[string]any) error {
-	delete(fields, "no_field")
-	return nil
-}
-
 func TestFilterInsert(t *testing.T) {
 	v, err := doFilterInsert[Parent](&Parent{DontSave: "this will be removed"})
 	if err != nil {

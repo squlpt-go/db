@@ -55,10 +55,11 @@ func FromRows[T any](rows *sql.Rows) (T, error) {
 		for i, columnType := range columnTypes {
 			m[columnType.Name()] = reflect.ValueOf(scan[i]).Elem().Interface()
 		}
-		err := h.Hydrate(m)
+		i, err := h.Hydrate(m)
 		if err != nil {
-			return *e, err
+			return i.(T), err
 		}
+		*e = i.(T)
 	}
 
 	return *e, nil
@@ -110,9 +111,14 @@ func FromMap[T any, M ~map[string]any](m M) (T, error) {
 	}
 
 	if h, ok := any(e).(Hydratable); ok {
-		err := h.Hydrate(m)
-		if err != nil {
-			return *e, err
+		i, err := h.Hydrate(m)
+		if i, ok := i.(T); ok {
+			if err != nil {
+				return i, err
+			}
+			*e = i
+		} else {
+			return *e, errors.New(typeOf[T]().String() + "'s Hydrate() method must return an entity of the same type")
 		}
 	}
 
@@ -170,7 +176,7 @@ func MapField[T any](fields map[string]any, key string) (T, bool) {
 }
 
 type Hydratable interface {
-	Hydrate(map[string]any) error
+	Hydrate(map[string]any) (IEntity, error)
 }
 
 func NewEntity() *Entity {
