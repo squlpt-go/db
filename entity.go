@@ -158,7 +158,7 @@ func Inflate[T any, M ~map[string]any](mapSlice []M) ([]T, error) {
 	return inflated, nil
 }
 
-func GetMapField[T any](fields map[string]any, key string) (T, bool) {
+func MapField[T any](fields map[string]any, key string) (T, bool) {
 	if value, ok := fields[key]; ok {
 		if v, ok := value.(T); ok {
 			return v, true
