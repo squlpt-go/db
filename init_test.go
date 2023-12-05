@@ -18,14 +18,19 @@ const (
 	inactive = status("inactive")
 )
 
+type FakeDependency struct {
+	Name string
+}
+
 type Parent struct {
 	*Entity
-	ID        int64            `field:"parent_id" primary:"parents"`
-	Name      Nullable[string] `field:"parent_name"`
-	Status    status           `field:"parent_status"`
-	Timestamp time.Time
-	Data      Json[map[string]any] `field:"parent_data"`
-	DontSave  string               `field:"no_field"`
+	FakeDependency FakeDependency
+	ID             int64            `field:"parent_id" primary:"parents"`
+	Name           Nullable[string] `field:"parent_name"`
+	Status         status           `field:"parent_status"`
+	Timestamp      time.Time
+	Data           Json[map[string]any] `field:"parent_data"`
+	DontSave       string               `field:"no_field"`
 }
 
 func (p *Parent) Hydrate(fields map[string]any) error {

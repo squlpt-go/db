@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/quasi-go/di"
 )
 
 func TestEntityFromRow(t *testing.T) {
@@ -220,5 +222,53 @@ func TestInflate(t *testing.T) {
 		if !reflect.DeepEqual(a.Data, e.Data) {
 			t.Error("failed asserting data is equal")
 		}
+	}
+}
+
+func TestBuilder(t *testing.T) {
+	s, err := FromMap[Parent](map[string]any{
+		"parent_id":    int64(123),
+		"hydrate_name": "hydrated",
+		"parent_data":  map[string]any{"key": "value"},
+	})
+
+	if err != nil {
+		t.Fatal(s, err)
+	}
+
+	if s.FakeDependency.Name != "" {
+		t.Errorf("didn't hydrate correctly: %#v", s.FakeDependency.Name)
+	}
+
+	SetBuilder(di.GetContainer())
+
+	s, err = FromMap[Parent](map[string]any{
+		"parent_id":    int64(123),
+		"hydrate_name": "hydrated",
+		"parent_data":  map[string]any{"key": "value"},
+	})
+
+	if err != nil {
+		t.Fatal(s, err)
+	}
+
+	if s.FakeDependency.Name != "" {
+		t.Errorf("didn't hydrate correctly: %#v", s.FakeDependency.Name)
+	}
+
+	di.BindInstance(&FakeDependency{Name: "faked"})
+
+	s, err = FromMap[Parent](map[string]any{
+		"parent_id":    int64(123),
+		"hydrate_name": "hydrated",
+		"parent_data":  map[string]any{"key": "value"},
+	})
+
+	if err != nil {
+		t.Fatal(s, err)
+	}
+
+	if s.FakeDependency.Name != "faked" {
+		t.Errorf("didn't hydrate correctly: %#v", s.FakeDependency.Name)
 	}
 }

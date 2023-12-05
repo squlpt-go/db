@@ -8,8 +8,40 @@ import (
 	"reflect"
 )
 
+type Builder interface {
+	BuildType(typeInfo reflect.Type) (reflect.Value, error)
+}
+
+var builder Builder
+
+func SetBuilder(b Builder) {
+	builder = b
+}
+
+func getInstancePointer[T any]() (*T, error) {
+	if builder == nil {
+		return new(T), nil
+	}
+
+	var t T
+
+	v, err := builder.BuildType(reflect.TypeOf(t))
+	if err != nil {
+		return &t, err
+	}
+
+	if v, ok := v.Interface().(*T); ok {
+		return v, nil
+	}
+
+	return &t, errors.New("builder could not convert to type")
+}
+
 func FromRows[T any](rows *sql.Rows) (T, error) {
-	e := new(T)
+	e, err := getInstancePointer[T]()
+	if err != nil {
+		return *e, err
+	}
 
 	entityField := reflect.ValueOf(e).Elem().FieldByName("Entity")
 
@@ -65,7 +97,11 @@ func FromRows[T any](rows *sql.Rows) (T, error) {
 }
 
 func FromMap[T any, M ~map[string]any](m M) (T, error) {
-	e := new(T)
+	e, err := getInstancePointer[T]()
+	if err != nil {
+		return *e, err
+	}
+
 	entityField := reflect.ValueOf(e).Elem().FieldByName("Entity")
 
 	if entityField.IsValid() {
