@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"testing"
 )
@@ -89,6 +90,18 @@ func TestAutoClose(t *testing.T) {
 			// do nothing
 		}
 	}
+}
+
+func TestRowsFlatten(t *testing.T) {
+	rows, err := getChildrenRows()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result := As[Child](rows).Flatten()
+	v, _ := json.Marshal(result)
+	t.Logf("%#v\n", result)
+	t.Logf("%s\n", v)
 }
 
 func TestColumn(t *testing.T) {

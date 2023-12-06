@@ -114,6 +114,11 @@ func (r *Rows[T]) Slice() []T {
 	return s
 }
 
+func (r *Rows[T]) Flatten() []map[string]any {
+	s := r.Slice()
+	return Flatten(s)
+}
+
 func (r *Rows[T]) Close() {
 	_ = r.Rows.Close()
 }

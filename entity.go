@@ -35,7 +35,7 @@ func FromRows[T any](rows *sql.Rows) (T, error) {
 	}
 
 	for _, columnType := range columnTypes {
-		fieldRef, found := getFieldRefByColumnType(e, columnType, true)
+		fieldRef, found := getFieldRefByColumnType(e, columnType, true, true)
 
 		if found {
 			scan = append(scan, fieldRef)
@@ -84,7 +84,7 @@ func FromMap[T any, M ~map[string]any](m M) (T, error) {
 	}
 
 	for k, v := range m {
-		fieldRef, found := getFieldRef(e, k, true)
+		fieldRef, found := getFieldRef(e, k, true, true)
 
 		if found && v != nil {
 			if reflect.TypeOf(fieldRef).Elem().Kind() == reflect.Slice {
@@ -262,15 +262,20 @@ func entityToMap[T any](entity *T, onlyUpdated bool, unserialize bool) map[strin
 
 	values := make(map[string]any)
 
-	if entity, ok := any(*entity).(IEntity); ok {
-		ef := entity.entityFields()
+	if e, ok := any(*entity).(IEntity); ok {
+		ef := e.entityFields()
 
 		if ef != nil {
 			for key, field := range ef {
 				if _, hasValue := values[key]; !hasValue {
-					values[key] = field.Value
+					values[key] = *field.Value
 				}
 			}
+		}
+
+		_, has := getPrimaryKeyField(entity)
+		if has {
+			values = filterStructFields(reflect.ValueOf(entity), values, false, false)
 		}
 	}
 
@@ -311,7 +316,7 @@ func entityToMap[T any](entity *T, onlyUpdated bool, unserialize bool) map[strin
 					relatedPk, hasPk := getPrimaryKeyField(value)
 
 					if hasPk {
-						pkField, has := getField(field, relatedPk.Tag.Get("field"), false)
+						pkField, has := getField(field, relatedPk.Tag.Get("field"), false, false)
 
 						if has && !pkField.Elem().IsZero() {
 							values[fieldName] = pkField.Elem().Interface()

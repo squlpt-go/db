@@ -292,12 +292,28 @@ func filterTableFields(db *sql.DB, table string, fields map[string]any) map[stri
 	return f
 }
 
-func getField(v reflect.Value, name string, readOnly bool) (reflect.Value, bool) {
+func filterStructFields(entity reflect.Value, fields map[string]any, readOnly bool, recurse bool) map[string]any {
+	f := make(map[string]any)
+
+	for k, v := range fields {
+		if _, hasField := getField(entity, k, readOnly, recurse); hasField {
+			f[k] = v
+		}
+	}
+
+	return f
+}
+
+func getField(v reflect.Value, name string, readOnly bool, recurse bool) (reflect.Value, bool) {
 	t := v.Type()
 
 	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 		t = t.Elem()
+	}
+
+	if v.Kind() != reflect.Struct {
+		panic("Can only get field of struct")
 	}
 
 	for i := 0; i < v.NumField(); i++ {
@@ -307,9 +323,13 @@ func getField(v reflect.Value, name string, readOnly bool) (reflect.Value, bool)
 		}
 	}
 
+	if !recurse {
+		return reflect.Zero(t), false
+	}
+
 	for i := 0; i < v.NumField(); i++ {
 		if t.Field(i).Type.Kind() == reflect.Struct {
-			if fieldRef, found := getField(v.Field(i).Addr(), name, readOnly); found {
+			if fieldRef, found := getField(v.Field(i).Addr(), name, readOnly, recurse); found {
 				return fieldRef, true
 			}
 		}
@@ -318,13 +338,13 @@ func getField(v reflect.Value, name string, readOnly bool) (reflect.Value, bool)
 	return reflect.Zero(t), false
 }
 
-func getFieldRef(entity any, name string, readOnly bool) (any, bool) {
-	f, ok := getField(reflect.ValueOf(entity), name, readOnly)
+func getFieldRef(entity any, name string, readOnly bool, recurse bool) (any, bool) {
+	f, ok := getField(reflect.ValueOf(entity), name, readOnly, recurse)
 	return f.Interface(), ok
 }
 
-func getFieldRefByColumnType(entity any, columnType *sql.ColumnType, readOnly bool) (any, bool) {
-	return getFieldRef(entity, columnType.Name(), readOnly)
+func getFieldRefByColumnType(entity any, columnType *sql.ColumnType, readOnly bool, recurse bool) (any, bool) {
+	return getFieldRef(entity, columnType.Name(), readOnly, recurse)
 }
 
 func getPrimaryKeyField(entity any) (reflect.StructField, bool) {
