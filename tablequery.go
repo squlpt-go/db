@@ -148,7 +148,7 @@ func DeleteRow[T IEntity](db *sql.DB, entity T) (*Result, error) {
 
 	pk := mustGetPrimaryKeyField(entity)
 	table := getPrimaryKeyTable(pk)
-	fields := entityToMap(&entity, false, false)
+	fields := entityToMap(&entity, false, false, false)
 
 	pkFieldName := pk.Tag.Get("field")
 	pkFieldValue, hasPkField := fields[pkFieldName]
@@ -349,7 +349,12 @@ func getFieldRefByColumnType(entity any, columnType *sql.ColumnType, readOnly bo
 
 func getPrimaryKeyField(entity any) (reflect.StructField, bool) {
 	v := reflect.ValueOf(entity)
-	t := reflect.TypeOf(entity)
+	return getValuePrimaryKeyField(v)
+}
+
+func getValuePrimaryKeyField(entity reflect.Value) (reflect.StructField, bool) {
+	v := entity
+	t := v.Type()
 
 	if v.Kind() == reflect.Pointer {
 		v = v.Elem()

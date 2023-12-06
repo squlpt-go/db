@@ -15,7 +15,7 @@ var (
 )
 
 func Require[T IEntity](entity *T, fields ...string) error {
-	efs := entityToMap(entity, false, false)
+	efs := entityToMap(entity, false, false, false)
 	for key, field := range efs {
 		if slices.Contains(fields, key) {
 			if field == nil || reflect.ValueOf(field).IsZero() {
@@ -28,7 +28,7 @@ func Require[T IEntity](entity *T, fields ...string) error {
 
 func Match[T IEntity](entity *T, pattern string, fields ...string) error {
 	re := regexp.MustCompile(pattern)
-	efs := entityToMap(entity, false, false)
+	efs := entityToMap(entity, false, false, false)
 	for key, field := range efs {
 		if slices.Contains(fields, key) {
 			if field != nil && !reflect.ValueOf(field).IsZero() {
@@ -88,7 +88,7 @@ func doFilter[T IEntity](entity *T, queryType QueryType) (map[string]any, error)
 
 	switch queryType {
 	case queryTypeChildren:
-		flat = entityToMap(entity, true, false)
+		flat = entityToMap(entity, true, false, false)
 		var err error
 		if e, ok := any(entity).(IFilter); ok {
 			err = e.Filter(flat)
@@ -103,7 +103,7 @@ func doFilter[T IEntity](entity *T, queryType QueryType) (map[string]any, error)
 			}
 		}
 	case Insert:
-		flat = entityToMap(entity, false, false)
+		flat = entityToMap(entity, false, false, false)
 		var err error
 		if e, ok := any(entity).(IFilter); ok {
 			err = e.Filter(flat)
@@ -118,7 +118,7 @@ func doFilter[T IEntity](entity *T, queryType QueryType) (map[string]any, error)
 			}
 		}
 	case Update:
-		flat = entityToMap(entity, true, false)
+		flat = entityToMap(entity, true, false, false)
 		var err error
 		if e, ok := any(entity).(IFilter); ok {
 			err = e.Filter(flat)

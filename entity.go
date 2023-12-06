@@ -126,7 +126,7 @@ func FromMap[T any, M ~map[string]any](m M) (T, error) {
 }
 
 func ToMap[T any](entity T) map[string]any {
-	return entityToMap(&entity, true, true)
+	return entityToMap(&entity, true, true, true)
 }
 
 func Flatten[T any](entities []T) []map[string]any {
@@ -252,8 +252,11 @@ func entityFromMap(m map[string]any) (*Entity, error) {
 	return e, nil
 }
 
-func entityToMap[T any](entity *T, onlyUpdated bool, unserialize bool) map[string]any {
-	v := reflect.ValueOf(entity)
+func entityToMap[T any](entity *T, onlyUpdated bool, unserialize bool, recurse bool) map[string]any {
+	return entityValueToMap(reflect.ValueOf(entity), onlyUpdated, unserialize, recurse)
+}
+
+func entityValueToMap(v reflect.Value, onlyUpdated bool, unserialize bool, recurse bool) map[string]any {
 	t := v.Type()
 
 	if t.Elem().Kind() == reflect.Pointer {
@@ -262,7 +265,7 @@ func entityToMap[T any](entity *T, onlyUpdated bool, unserialize bool) map[strin
 
 	values := make(map[string]any)
 
-	if e, ok := any(*entity).(IEntity); ok {
+	if e, ok := v.Interface().(IEntity); ok {
 		ef := e.entityFields()
 
 		if ef != nil {
@@ -273,9 +276,11 @@ func entityToMap[T any](entity *T, onlyUpdated bool, unserialize bool) map[strin
 			}
 		}
 
-		_, has := getPrimaryKeyField(entity)
-		if has {
-			values = filterStructFields(reflect.ValueOf(entity), values, false, false)
+		if !recurse {
+			_, has := getValuePrimaryKeyField(v)
+			if has {
+				values = filterStructFields(v, values, false, false)
+			}
 		}
 	}
 
@@ -298,28 +303,27 @@ func entityToMap[T any](entity *T, onlyUpdated bool, unserialize bool) map[strin
 			}
 
 			if field.Kind() == reflect.Struct {
-				if field.FieldByName("Valid").IsValid() {
-					if isValid, ok := field.FieldByName("Valid").Interface().(bool); ok && isValid {
-						values[fieldName] = value
-					} else if !isValid {
-						if !onlyUpdated {
-							values[fieldName] = nil
-						} else if _, hasField := values[fieldName]; hasField {
-							values[fieldName] = nil
-						}
-					}
-				} else if v, ok := value.(Unserializeable); ok && unserialize {
+				if v, ok := value.(Unserializeable); ok && unserialize {
 					values[fieldName] = v.Unserialize()
-				} else if _, ok := value.(driver.Valuer); ok {
-					values[fieldName] = value
+				} else if v, ok := value.(driver.Valuer); ok {
+					val, err := v.Value()
+					if err == nil {
+						values[fieldName] = val
+					}
 				} else {
 					relatedPk, hasPk := getPrimaryKeyField(value)
-
 					if hasPk {
-						pkField, has := getField(field, relatedPk.Tag.Get("field"), false, false)
+						if recurse {
+							inner := entityValueToMap(field.Addr(), onlyUpdated, unserialize, recurse)
+							for k, v := range inner {
+								values[k] = v
+							}
+						} else {
+							pkField, has := getField(field, relatedPk.Tag.Get("field"), false, false)
 
-						if has && !pkField.Elem().IsZero() {
-							values[fieldName] = pkField.Elem().Interface()
+							if has && !pkField.Elem().IsZero() {
+								values[fieldName] = pkField.Elem().Interface()
+							}
 						}
 					}
 				}
