@@ -119,6 +119,17 @@ func (r *Rows[T]) Flatten() []map[string]any {
 	return Flatten(s)
 }
 
+func (r *Rows[T]) Count() uint {
+	defer r.Close()
+	c := uint(0)
+
+	for r.Next() {
+		c++
+	}
+
+	return c
+}
+
 func (r *Rows[T]) Close() {
 	_ = r.Rows.Close()
 }

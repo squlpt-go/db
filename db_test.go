@@ -104,6 +104,19 @@ func TestRowsFlatten(t *testing.T) {
 	t.Logf("%s\n", v)
 }
 
+func TestRowsCount(t *testing.T) {
+	rows, err := getChildrenRows()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count := As[Child](rows).Count()
+
+	if count != 2 {
+		t.Logf("%d does not match expected count of %d", count, 2)
+	}
+}
+
 func TestColumn(t *testing.T) {
 	rows, err := getChildrenRows()
 	if err != nil {
