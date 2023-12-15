@@ -110,35 +110,6 @@ func TestColumns(t *testing.T) {
 	}
 }
 
-func TestCount(t *testing.T) {
-	db := DB()
-	row := db.QueryRow(`
-		SELECT COUNT(*)
-		FROM parents
-		WHERE parent_status = 'active'`,
-	)
-
-	if row == nil {
-		t.Error("invalid row")
-		return
-	}
-	var count int64
-	err := row.Scan(&count)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	c := GetCount[Parent](
-		db,
-		NewQuery().WhereEq("parent_status", "active"),
-	)
-
-	if c != count {
-		t.Error("Count mismatch")
-	}
-}
-
 func TestGetRows(t *testing.T) {
 	db := DB()
 	r := GetRows[Child](db).Slice()

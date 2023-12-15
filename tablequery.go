@@ -41,39 +41,6 @@ func GetRows[T IEntity](db *sql.DB, qs ...*QueryBuilder) *Rows[T] {
 	return Query[T](db, q)
 }
 
-func GetCount[T IEntity](db *sql.DB, qs ...*QueryBuilder) int64 {
-	s := new(T)
-	pk := mustGetPrimaryKeyField(s)
-	table := getPrimaryKeyTable(pk)
-
-	query := NewQuery().
-		Select(Raw("COUNT(*) AS count")).
-		From(table).
-		ComposeWith(qs...)
-
-	transcriber := getTranscriber(db.Driver())
-	q, args, err := transcriber.Transcribe(query)
-	if err != nil {
-		panic(err)
-	}
-
-	rows, err := db.Query(q, args...)
-	if err != nil {
-		m := fmt.Sprintf("%s: \"%s\" args: %v", err, q, args)
-		panic(m)
-	}
-	defer rows.Close()
-
-	var count int64
-	rows.Next()
-	err = rows.Scan(&count)
-	if err != nil {
-		panic(err)
-	}
-
-	return count
-}
-
 func GetRowById[T IEntity, I IDType](db *sql.DB, id I, qs ...*QueryBuilder) (T, bool) {
 	s := new(T)
 	pk := mustGetPrimaryKeyField(s)
