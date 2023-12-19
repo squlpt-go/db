@@ -211,3 +211,24 @@ func TestInflate(t *testing.T) {
 		}
 	}
 }
+
+func TestUpdateFields(t *testing.T) {
+	rows, err := getParentRows()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows.Next()
+	e, err := FromRows[Parent](rows)
+
+	m := entityToMap(&e, true, false, false)
+	if m["parent_name"] != "Name" {
+		t.Fatalf("invalid name: %s", m["installation_name"])
+	}
+
+	e.Name = Nullable[string]{}
+	m = entityToMap(&e, true, false, false)
+	if m["parent_name"] != nil {
+		t.Fatalf("name should be nil: %s", m["installation_name"])
+	}
+}

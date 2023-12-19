@@ -293,13 +293,13 @@ func entityValueToMap(v reflect.Value, onlyUpdated bool, unserialize bool, recur
 			value := field.Interface()
 
 			if onlyUpdated && field.IsZero() {
-				if value, has := values[fieldName]; has {
-					if !reflect.ValueOf(value).IsZero() {
-						values[fieldName] = value
+				if v, has := values[fieldName]; has {
+					if v != nil && reflect.ValueOf(v).IsZero() {
+						continue
 					}
+				} else {
+					continue
 				}
-
-				continue
 			}
 
 			if field.Kind() == reflect.Struct {
@@ -310,7 +310,7 @@ func entityValueToMap(v reflect.Value, onlyUpdated bool, unserialize bool, recur
 					if err == nil {
 						values[fieldName] = val
 					}
-				} else {
+				} else if _, ok := value.(IEntity); ok {
 					relatedPk, hasPk := getPrimaryKeyField(value)
 					if hasPk {
 						if recurse {
@@ -327,7 +327,6 @@ func entityValueToMap(v reflect.Value, onlyUpdated bool, unserialize bool, recur
 						}
 					}
 				}
-
 			} else {
 				values[fieldName] = value
 			}
