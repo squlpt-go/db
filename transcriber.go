@@ -5,7 +5,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"github.com/go-sql-driver/mysql"
 	"reflect"
 	"regexp"
 	"sort"
@@ -13,10 +12,6 @@ import (
 	"strings"
 	"time"
 )
-
-func init() {
-	RegisterTranscriber(&mysql.MySQLDriver{}, MySQLTranscriber{UsePlaceholders: true})
-}
 
 const clauseSeparator = " "
 

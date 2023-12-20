@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"github.com/go-sql-driver/mysql"
 	"os"
 	"path/filepath"
 	"time"
@@ -105,7 +106,7 @@ func DB() *sql.DB {
 			panic(err)
 		}
 
-		time.Sleep(3 * time.Second)
+		RegisterTranscriber(&mysql.MySQLDriver{}, MySQLTranscriber{UsePlaceholders: true})
 	}
 
 	return _db
