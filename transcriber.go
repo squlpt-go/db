@@ -120,7 +120,7 @@ func (t MySQLTranscriber) processSelectQuery(q *QueryBuilder) (string, []any, er
 		return "", nil, err
 	}
 
-	return strings.Join(lines, "\n"), args, nil
+	return strings.Join(lines, " "), args, nil
 }
 
 func (t MySQLTranscriber) processUpdateQuery(q *QueryBuilder) (string, []any, error) {
