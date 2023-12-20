@@ -18,6 +18,8 @@ func init() {
 	RegisterTranscriber(&mysql.MySQLDriver{}, MySQLTranscriber{UsePlaceholders: true})
 }
 
+const clauseSeparator = " "
+
 type Transcribeable interface {
 	Transcribe(db *sql.DB) (string, []any, error)
 }
@@ -120,7 +122,7 @@ func (t MySQLTranscriber) processSelectQuery(q *QueryBuilder) (string, []any, er
 		return "", nil, err
 	}
 
-	return strings.Join(lines, " "), args, nil
+	return strings.Join(lines, clauseSeparator), args, nil
 }
 
 func (t MySQLTranscriber) processUpdateQuery(q *QueryBuilder) (string, []any, error) {
@@ -167,7 +169,7 @@ func (t MySQLTranscriber) processUpdateQuery(q *QueryBuilder) (string, []any, er
 		return "", nil, err
 	}
 
-	return strings.Join(lines, "\n"), args, nil
+	return strings.Join(lines, clauseSeparator), args, nil
 }
 
 func (t MySQLTranscriber) processDeleteQuery(q *QueryBuilder) (string, []any, error) {
@@ -214,7 +216,7 @@ func (t MySQLTranscriber) processDeleteQuery(q *QueryBuilder) (string, []any, er
 		return "", nil, err
 	}
 
-	return strings.Join(lines, "\n"), args, nil
+	return strings.Join(lines, clauseSeparator), args, nil
 }
 
 func (t MySQLTranscriber) processInsertQuery(q *QueryBuilder) (string, []any, error) {
@@ -241,7 +243,7 @@ func (t MySQLTranscriber) processInsertQuery(q *QueryBuilder) (string, []any, er
 		return "", nil, err
 	}
 
-	return strings.Join(lines, "\n"), args, nil
+	return strings.Join(lines, clauseSeparator), args, nil
 }
 
 func (t MySQLTranscriber) insert(q *QueryBuilder, lines *[]string, args *[]any) error {
@@ -721,7 +723,7 @@ func (t MySQLTranscriber) processJoins(joins []Join) (string, []any, error) {
 		args = append(args, ca...)
 	}
 
-	return strings.Join(sqls, "\n"), args, nil
+	return strings.Join(sqls, clauseSeparator), args, nil
 }
 
 func (t MySQLTranscriber) processOrderBys(orders []Order) (string, []any, error) {
@@ -761,11 +763,11 @@ func (t MySQLTranscriber) processUnions(unions []Union) (string, []any, error) {
 			return "", nil, te
 		}
 
-		sqls = append(sqls, string(u.UnionType)+"\n"+ts)
+		sqls = append(sqls, string(u.UnionType)+clauseSeparator+ts)
 		args = append(args, ta...)
 	}
 
-	return strings.Join(sqls, "\n"), args, nil
+	return strings.Join(sqls, clauseSeparator), args, nil
 }
 
 func (t MySQLTranscriber) processSet(values map[string]any) (string, []any, error) {
