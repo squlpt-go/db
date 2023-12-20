@@ -660,7 +660,7 @@ func (t MySQLTranscriber) processValue(value Value) (string, []any, error) {
 		if t.UsePlaceholders {
 			return "?", []any{time.Time(val)}, nil
 		} else {
-			return fmt.Sprintf("%s", time.Time(val).Format("2006-01-02 15:04:05")), []any{}, nil
+			return fmt.Sprintf("'%s'", time.Time(val).Format("2006-01-02 15:04:05")), []any{}, nil
 		}
 	case *QueryBuilder:
 		q := value.(*QueryBuilder)
