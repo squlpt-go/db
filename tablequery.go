@@ -51,6 +51,50 @@ func GetRowById[T IEntity, I IDType](db *sql.DB, id I, qs ...*QueryBuilder) (T, 
 	return As[T](r).Row()
 }
 
+func GetCount[T IEntity](db *sql.DB, qs ...*QueryBuilder) uint {
+	s := new(T)
+	pk := mustGetPrimaryKeyField(s)
+	table := getPrimaryKeyTable(pk)
+
+	query := NewQuery().
+		From(table)
+
+	for _, r := range getManyToOneRelations(db, table) {
+		query.LeftJoinEq(
+			r.parent(),
+			Ident(r.parentKey()),
+			Ident(r.childKey()),
+		).AddField(TableField(r.parent(), "*"))
+	}
+
+	query.ComposeWith(qs...).
+		ClearFields().
+		ClearOrderBys().
+		Select(Raw("COUNT(*) AS count"))
+
+	transcriber := getTranscriber(db.Driver())
+	q, args, err := transcriber.Transcribe(query)
+	if err != nil {
+		panic(err)
+	}
+
+	rows, err := db.Query(q, args...)
+	if err != nil {
+		m := fmt.Sprintf("%s: \"%s\" args: %v", err, q, args)
+		panic(m)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var count uint
+	rows.Next()
+	err = rows.Scan(&count)
+	if err != nil {
+		panic(err)
+	}
+
+	return count
+}
+
 func InsertRow[T IEntity](db *sql.DB, entity T) (*Result, error) {
 	if reflect.ValueOf(entity).IsZero() {
 		panic("Cannot insert zero entity " + reflect.TypeOf(entity).String())
