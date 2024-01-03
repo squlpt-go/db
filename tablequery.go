@@ -25,7 +25,7 @@ func GetRows[T IEntity](db *sql.DB, qs ...*QueryBuilder) *Rows[T] {
 	table := getPrimaryKeyTable(pk)
 
 	q := NewQuery().
-		Select("*").
+		Select(TableField(table, "*")).
 		From(table)
 
 	for _, r := range getManyToOneRelations(db, table) {
